@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/guhua/Documents/BIO/model_data/maturemRNA/onehot/HEK293_sysy/2AUROC/data"
+all_model_checkpoint_paths: "/home/guhua/Documents/BIO/model_data/maturemRNA/onehot/HEK293_sysy/2AUROC/data"

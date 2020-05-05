@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/guhua/Documents/BIO/model_data/FULLtranscript/A549//0AUROC/data"
+all_model_checkpoint_paths: "/home/guhua/Documents/BIO/model_data/FULLtranscript/A549//0AUROC/data"

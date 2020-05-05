@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/guhua/Documents/BIO/model_data/FULLtranscript/embedding/HEK293_abacm/23AUROC//data"
+all_model_checkpoint_paths: "/home/guhua/Documents/BIO/model_data/FULLtranscript/embedding/HEK293_abacm/23AUROC//data"
