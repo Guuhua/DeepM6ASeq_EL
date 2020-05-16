@@ -12,14 +12,13 @@ from datetime import datetime
 
 record_step = 100
 coding_method = ['/onehot','/embedding', '/seq']
-method = coding_method[1]
+method = coding_method[2]
 
 file_data = '/home/guhua/Documents/BIO'
-# path_embed = '/home/guhua/Documents/BIO/Encoding_data/seq_data/'
+path_embed = '/home/guhua/Documents/BIO/Encoding_data/seq_data/'
 # path_embed = '/home/guhua/Documents/BIO/Encoding_data/onehot_data/'
-path_embed = '/home/guhua/Documents/BIO/Encoding_data/embedding_data/'
+# path_embed = '/home/guhua/Documents/BIO/Encoding_data/embedding_data/'
 
-testmodelpath = '/home/guhua/Documents/BIO/test_modeldata/'
 
 # read embedding data
 with open(path_embed+'rna_embedding.csv', encoding="utf-8") as f:
@@ -101,68 +100,8 @@ class mRNA_sequence(object):
 
         return batch_data, batch_labels
 
-class mRNA_sequence_test(object):
-    def __init__(self, data_path_tmp='', neg_name = 'testNeg1.csv'):
-        # data 
-        # test
-        self.num_neg = 0
-        self.num_pos = 0
-        self.pos_data = []
-        self.pos_labels = []
-        self.neg_data = []
-        self.neg_labels = []
-
-        path_all = ['testPos.csv']
-        path_all.append(neg_name)
-
-        # build the dataset
-        for i in path_all:
-            with open( data_path_tmp + i, encoding="utf-8") as f:
-                reader = list(csv.reader(f))
-                if 'Pos' in i:
-                    self.pos_data = reader
-                    self.pos_labels = [[1.,0.]]*len(reader)
-                if 'Neg' in i:
-                    self.neg_data = reader
-                    self.neg_labels = [[0.,1.]]*len(reader)
-               
-        self.num_neg = len(self.neg_labels)
-        self.num_pos = len(self.pos_labels)
-
-        self.batch_id_i = 0
-        self.batch_id_j = 0
-        
-    # rate_pos : pos / ALL
-    def data_next(self, batch_size, rate_pos = 0.5):
-        tmp_batch_data = []
-        batch_labels = []
-        batch_data = []
-
-        for _ in range(batch_size):
-            # Add a positive sample or a negative sample at random
-            if random.random() < rate_pos:
-                tmp_batch_data.append(self.pos_data[self.batch_id_i])
-                batch_labels.append(self.pos_labels[self.batch_id_i])
-                self.batch_id_i+=1
-                if self.batch_id_i==len(self.pos_data):
-                    self.batch_id_i = 0         
-            else:
-                tmp_batch_data.append(self.neg_data[self.batch_id_j])
-                batch_labels.append(self.neg_labels[self.batch_id_j])
-                self.batch_id_j+=1
-                if self.batch_id_j==len(self.neg_data):
-                    self.batch_id_j = 0
-            
-        # convert to the embedding data
-        for i in tmp_batch_data:
-            temp = []
-            for j in i:
-                temp.append(final_embeddings[int(dictionary[j])])
-            batch_data.append(temp)
-
-        return batch_data, batch_labels
 ## 0+0
-def LSTM_CNN_0(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, len_seq = 32, learning_rate=1e-3, training_iters = 10001, batch_size=128, display_step=100, iter_size=100, Run_type='train', test_path = '', negname = ''):
+def LSTM_CNN_0(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, len_seq = 32, learning_rate=1e-3, training_iters = 10001, batch_size=128, display_step=100, iter_size=100, Run_type='train', test_path = ''):
 
     ## STEP 1 load the data and build the dataset
 
@@ -378,18 +317,14 @@ def LSTM_CNN_0(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, le
     # test the network
     elif Run_type == 'test':
         
-        datatest_path = test_path + data_mode + '/' + data_type + '/'
-        print("test data path: ", datatest_path)
-        testset = mRNA_sequence_test(data_path_tmp=datatest_path, neg_name= negname)
+        testset = mRNA_sequence(type_data='test', data_path_tmp="/")
 
-        path_pred  = testmodelpath + data_mode + '/' + data_type + '/pred0' + negname
-        path_label = testmodelpath + data_mode + '/' + data_type + '/label.csv'
-        print(path_pred)
-        print(path_label)
+        path_pred  = '/predLSTMCNN0.csv'
+        path_label = '/labelLSTMCNN0.csv'
 
         with tf.Session(graph = graph1) as sess:
             sess.run(init)
-            saver.restore(sess, path_model + "data")
+            saver.restore(sess, test_path + "/0AUROC/model_data/data")
             num_neg = testset.num_neg
             num_pos = testset.num_pos
             print("num_neg:",num_neg,'  num_pos:',num_pos)
@@ -397,6 +332,7 @@ def LSTM_CNN_0(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, le
             test_data, test_label = testset.data_next(num_pos, rate_pos=1)
             pred_pos = sess.run(pred, feed_dict={x: test_data, y: test_label, keep_prob:1.0, batch_size_:num_pos})
             pred_pos = list(pred_pos)
+
 
             test_data, test_label = testset.data_next(num_neg, rate_pos=0)
             pred_neg = sess.run(pred, feed_dict={x: test_data, y: test_label, keep_prob:1.0, batch_size_:num_neg})
@@ -419,7 +355,7 @@ def LSTM_CNN_0(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, le
 
 
 ## 0+1 all
-def LSTM_CNN_1(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, len_seq = 32, learning_rate=1e-3, training_iters = 10001, batch_size=128, display_step=100,iter_size=100, Run_type='train', test_path = '', negname = ''):
+def LSTM_CNN_1(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, len_seq = 32, learning_rate=1e-3, training_iters = 10001, batch_size=128, display_step=100,iter_size=100, Run_type='train', test_path = ''):
 
     ## STEP 1 load the data and build the dataset
 
@@ -641,19 +577,15 @@ def LSTM_CNN_1(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, le
         print(auroc)
 
     elif Run_type == 'test':
+        
+        testset = mRNA_sequence(type_data='test', data_path_tmp="/")
 
-        datatest_path = test_path + data_mode + '/' + data_type + '/'
-        print("test data path: ", datatest_path)
-        testset = mRNA_sequence_test(data_path_tmp=datatest_path, neg_name= negname)
-
-        path_pred  = testmodelpath + data_mode + '/' + data_type + '/pred1' + negname
-        path_label = testmodelpath + data_mode + '/' + data_type + '/label.csv'
-        print(path_pred)
-        print(path_label)
+        path_pred  = '/predLSTMCNN1.csv'
+        path_label = '/labelLSTMCNN1.csv'
 
         with tf.Session(graph = graph2) as sess:
             sess.run(init)
-            saver.restore(sess, path_model + "data")
+            saver.restore(sess, test_path + "/1AUROC/model_data/data")
             num_neg = testset.num_neg
             num_pos = testset.num_pos
             print("num_neg:",num_neg,'  num_pos:',num_pos)
@@ -684,7 +616,7 @@ def LSTM_CNN_1(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, le
 
 
 ## 1+1 all+middle
-def LSTM_CNN_2(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, len_seq = 32, learning_rate=1e-3, training_iters = 10001, batch_size=128, display_step=100,iter_size=100, Run_type='train', test_path = '', negname = ''):
+def LSTM_CNN_2(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, len_seq = 32, learning_rate=1e-3, training_iters = 10001, batch_size=128, display_step=100,iter_size=100, Run_type='train', test_path = ''):
 
     ## STEP 1 load the data and build the dataset
 
@@ -915,18 +847,14 @@ def LSTM_CNN_2(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, le
 
     elif Run_type == "test":   
         
-        datatest_path = test_path + data_mode + '/' + data_type + '/'
-        print("test data path: ", datatest_path)
-        testset = mRNA_sequence_test(data_path_tmp=datatest_path, neg_name= negname)
+        testset = mRNA_sequence(type_data='test', data_path_tmp="/")
 
-        path_pred  = testmodelpath + data_mode + '/' + data_type + '/pred2' + negname
-        path_label = testmodelpath + data_mode + '/' + data_type + '/label.csv'
-        print(path_pred)
-        print(path_label)
+        path_pred  = '/predLSTMCNN2.csv'
+        path_label = '/labelLSTMCNN2.csv'
 
         with tf.Session(graph = graph3) as sess:
             sess.run(init)
-            saver.restore(sess,  path_model + "data")
+            saver.restore(sess,  test_path + "/2AUROC/model_data/data")
             num_neg = testset.num_neg
             num_pos = testset.num_pos
             print("num_neg:",num_neg,'  num_pos:',num_pos)
@@ -956,7 +884,7 @@ def LSTM_CNN_2(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, le
 
 
 ## -1+1 all-middle
-def LSTM_CNN_23(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, len_seq = 32, learning_rate=1e-3, training_iters = 10001, batch_size=128, display_step=100,iter_size=100, Run_type='train', test_path = '', negname = ''):
+def LSTM_CNN_23(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, len_seq = 32, learning_rate=1e-3, training_iters = 10001, batch_size=128, display_step=100,iter_size=100, Run_type='train', test_path = ''):
 
     ## STEP 1 load the data and build the dataset
 
@@ -1186,19 +1114,15 @@ def LSTM_CNN_23(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, l
     
     elif Run_type == 'test':
 
-        datatest_path = test_path + data_mode + '/' + data_type + '/'
-        print("test data path: ", datatest_path)
-        testset = mRNA_sequence_test(data_path_tmp=datatest_path, neg_name= negname)
+        testset = mRNA_sequence(type_data='test', data_path_tmp="")
 
-        path_pred  = testmodelpath + data_mode + '/' + data_type + '/pred23' + negname
-        path_label = testmodelpath + data_mode + '/' + data_type + '/label.csv'
-        print(path_pred)
-        print(path_label)
+        path_pred  = '/predLSTMCNN23.csv'
+        path_label = '/labelLSTMCNN23.csv'
  
         # 运行得到预测值和真实值
         with tf.Session(graph = graph4) as sess:
             sess.run(init)
-            saver.restore(sess, path_model + "data")
+            saver.restore(sess, test_path + "/23AUROC/model_data/data")
 
             num_neg = testset.num_neg
             num_pos = testset.num_pos
@@ -1229,7 +1153,7 @@ def LSTM_CNN_23(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, l
 
 
 ## 1+0 middle
-def LSTM_CNN_3(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, len_seq = 32, learning_rate=1e-3, training_iters = 10001, batch_size=128, display_step=100,iter_size=100, Run_type='train', test_path = '', negname = ''):
+def LSTM_CNN_3(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, len_seq = 32, learning_rate=1e-3, training_iters = 10001, batch_size=128, display_step=100,iter_size=100, Run_type='train', test_path = ''):
 
     ## STEP 1 load the data and build the dataset
 
@@ -1457,19 +1381,15 @@ def LSTM_CNN_3(data_mode = 'FULLtranscript', data_type = 'A549', n_input = 4, le
     
     elif Run_type == 'test':
         
-        datatest_path = test_path + data_mode + '/' + data_type + '/'
-        print("test data path: ", datatest_path)
-        testset = mRNA_sequence_test(data_path_tmp=datatest_path, neg_name= negname)
+        testset = mRNA_sequence(type_data='test', data_path_tmp="")
 
-        path_pred  = testmodelpath + data_mode + '/' + data_type + '/pred3' + negname
-        path_label = testmodelpath + data_mode + '/' + data_type + '/label.csv'
-        print(path_pred)
-        print(path_label)
+        path_pred  = '/predLSTMCNN3.csv'
+        path_label = '/labelLSTMCNN3.csv'
  
         # 运行得到预测值和真实值
         with tf.Session(graph = graph5) as sess:
             sess.run(init)
-            saver.restore(sess, path_model + "data")
+            saver.restore(sess, test_path + "/3AUROC/model_data/data")
             num_neg = testset.num_neg
             num_pos = testset.num_pos
             print("num_neg:",num_neg,'  num_pos:',num_pos)
